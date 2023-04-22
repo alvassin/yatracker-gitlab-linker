@@ -1,6 +1,6 @@
 from typing import List
 
-from aiomisc import entrypoint, Service
+from aiomisc import Service, entrypoint
 from aiomisc.service.raven import RavenSender
 from aiomisc_log import basic_config
 
