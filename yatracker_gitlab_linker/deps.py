@@ -10,7 +10,8 @@ async def st_client(parser: Parser):
         return StClient(
             session=session,
             url=parser.tracker.url,
-            token=parser.tracker.token
+            token=parser.tracker.token,
+            link_origin=parser.tracker.link_origin
         )
 
 
