@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "yatracker-gitlab-linker"
+version = "0.1.0"
+description = "Yandex Tracker issues integration for Gitlab"
+license = "MIT"
+authors = ["Alexander Vasin <hi@alvass.in>"]
+readme = "README.rst"
+packages = [{include = "yatracker_gitlab_linker"}]
+
+[tool.poetry.scripts]
+yatracker-gitlab-linker = 'yatracker_gitlab_linker.__main__:main'
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.8.4"
+aiomisc = {version = "^17.0.9", extras = ["raven"]}
+argclass = "^0.9.2"
+aiomisc-dependency = "^0.1.17"
+yarl = "^1.8.2"
+
+[tool.poetry.group.dev.dependencies]
+aiomisc-pytest = "^1.1.1"
+pytest = "^7.2.2"
+gray = "^0.13.0"
+pylama = "^8.4.1"
+mypy = "^1.2.0"
+pytest-cov = "^4.0.0"
+
+[tool.poem-plugins.version]
+provider = "git"
+update_pyproject = true
+
+[tool.mypy]
+check_untyped_defs = true
+follow_imports = "silent"
+ignore_missing_imports = true
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
