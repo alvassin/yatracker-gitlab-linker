@@ -1,14 +1,14 @@
 [tool.poetry]
-name = "yatracker-gitlab-linker"
+name = "yatracker-linker"
 version = "0.1.0"
-description = "Yandex Tracker issues integration for Gitlab"
+description = "Yandex Tracker issues integration"
 license = "MIT"
 authors = ["Alexander Vasin <hi@alvass.in>"]
 readme = "README.rst"
-packages = [{include = "yatracker_gitlab_linker"}]
+packages = [{include = "yatracker_linker"}]
 
 [tool.poetry.scripts]
-yatracker-gitlab-linker = 'yatracker_gitlab_linker.__main__:main'
+yatracker-linker = 'yatracker_linker.__main__:main'
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -25,6 +25,7 @@ gray = "^0.13.0"
 pylama = "^8.4.1"
 mypy = "^1.2.0"
 pytest-cov = "^4.0.0"
+coveralls = "^3.3.1"
 
 [tool.poem-plugins.version]
 provider = "git"

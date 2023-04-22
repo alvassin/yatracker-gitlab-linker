@@ -1,8 +1,8 @@
 from aiohttp import web
 from aiomisc.service.aiohttp import AIOHTTPService
 
-from yatracker_gitlab_linker.st_client import StClient
-from yatracker_gitlab_linker.views.event import EventView
+from yatracker_linker.st_client import StClient
+from yatracker_linker.views.event import EventView
 
 
 class HttpService(AIOHTTPService):

@@ -21,7 +21,7 @@ jobs:
       - run: poetry run pylama .
         env:
           FORCE_COLOR: 1
-      - run: poetry run unify --quote "'" --check-only --recursive yatracker_gitlab_linker tests
+      - run: poetry run unify --quote "'" --check-only --recursive yatracker_linker tests
         env:
           FORCE_COLOR: 1
   mypy:
@@ -34,7 +34,7 @@ jobs:
           python-version: "3.11"
       - run: python -m pip install poetry
       - run: poetry install
-      - run: poetry run mypy --install-types --non-interactive yatracker_gitlab_linker/
+      - run: poetry run mypy --install-types --non-interactive yatracker_linker/
         env:
           FORCE_COLOR: 1
 
@@ -58,7 +58,7 @@ jobs:
       - run: >-
           poetry run pytest \
             -vv \
-            --cov=yatracker_gitlab_linker \
+            --cov=yatracker_linker \
             --cov-report=term-missing \
             --aiomisc-test-timeout=120 \
             tests

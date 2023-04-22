@@ -1,4 +1,4 @@
-PROJECT_NAME ?= yatracker_gitlab_linker
+PROJECT_NAME ?= yatracker_linker
 VERSION = $(shell poetry version --short | tr '+' '-')
 POETRY_LOCATION=$(shell poetry env info -p)
 

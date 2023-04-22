@@ -4,18 +4,18 @@ from aiomisc import Service, entrypoint
 from aiomisc.service.raven import RavenSender
 from aiomisc_log import basic_config
 
-from yatracker_gitlab_linker.args import Parser
-from yatracker_gitlab_linker.deps import config_deps
-from yatracker_gitlab_linker.service import HttpService
+from yatracker_linker.args import Parser
+from yatracker_linker.deps import config_deps
+from yatracker_linker.service import HttpService
 
 
 def main():
     parser = Parser(
-        auto_env_var_prefix='YATRACKER_GITLAB_LINKER_',
+        auto_env_var_prefix='YATRACKER_LINKER_',
         config_files=[
-            '.yatracker-gitlab-linker.ini',
-            '~/.yatracker-gitlab-linker.ini',
-            '/etc/yatracker-gitlab-linker.ini'
+            '.yatracker-linker.ini',
+            '~/.yatracker-linker.ini',
+            '/etc/yatracker-linker.ini'
         ],
     )
     parser.parse_args()

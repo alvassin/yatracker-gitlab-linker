@@ -6,7 +6,7 @@ from typing import Any, List, Mapping
 
 from aiohttp.web import HTTPBadRequest, Response, View
 
-from yatracker_gitlab_linker.st_client import StClient
+from yatracker_linker.st_client import StClient
 
 
 PATTERN = re.compile(r'(?P<ticket>[a-z0-9]+-[0-9]+)', flags=re.IGNORECASE)
