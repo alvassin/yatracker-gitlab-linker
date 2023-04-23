@@ -28,8 +28,8 @@ def get_mr_url_path(url, project_path_with_namespace):
     return url[index:]
 
 
-class EventView(View):
-    URL_PATH = '/'
+class GitlabView(View):
+    URL_PATH = '/gitlab'
 
     @property
     def st_client(self) -> StClient:
