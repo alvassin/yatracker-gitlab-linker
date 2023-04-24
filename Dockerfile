@@ -11,7 +11,7 @@ RUN /usr/share/python3/app/bin/pip check
 RUN find-libdeps /usr/share/python3/app > /usr/share/python3/app/pkgdeps.txt
 
 ########################################################################
-FROM registry.yandex.net/edadeal/gitlab/dockers/python-base:3.11 as app
+FROM snakepacker/python:3.11 as app
 
 COPY --from=builder /usr/share/python3/app /usr/share/python3/app
 RUN ln -snf /usr/share/python3/app/bin/yatracker-linker /usr/bin/
