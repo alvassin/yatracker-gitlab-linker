@@ -55,4 +55,4 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
           push: true
-          tags: ghcr.io/alvassin/yatracker-linker:${{ env.poetry_version }}
+          tags: ghcr.io/alvassin/yatracker-linker:latest
