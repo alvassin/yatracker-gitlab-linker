@@ -48,6 +48,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Ls
+        run: ls -allah dist/
+
       - uses: docker/build-push-action@v4
         with:
           context: ${{ matrix.image.context }}
