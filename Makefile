@@ -30,5 +30,8 @@ lint:
 test: clean lint
 	poetry run pytest --cov $(PROJECT_NAME) --cov-report term-missing
 
-sdist:
-	poetry build -f sdist
+build:
+	poetry build
+
+docker: clean build
+	docker build -t $(PROJECT_NAME):$(VERSION) --target app .

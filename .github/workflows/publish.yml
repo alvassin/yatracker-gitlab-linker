@@ -5,12 +5,9 @@ on:
     branches: [ master ]
 
 jobs:
-  sdist:
-
+  build:
     runs-on: ubuntu-latest
-
     steps:
-
       - uses: actions/checkout@v2
 
       - name: Setup python3.11
@@ -37,3 +34,12 @@ jobs:
         run: poetry publish --build
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build docker image
+        uses: docker/build-push-action@v1
+        with:
+          registry: ghcr.io
+          username: "alvassin"
+          password: ${{ GITHUB_TOKEN }}
+          repository: alvassin/yatracker-linker
+          tags: latest

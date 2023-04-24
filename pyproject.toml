@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yatracker-linker"
-version = "0.1.0"
+version = "0.1.4"
 description = "Yandex Tracker issues integration"
 license = "MIT"
 authors = ["Alexander Vasin <hi@alvass.in>"]
