@@ -43,12 +43,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get poetry version
-        run: |
-          export VERSION="$(poetry version --short)"
+        run: echo "poetry_version=$(poetry version --short)" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v4
         with:
           context: ${{ matrix.image.context }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
-          tags: ghcr.io/alvassin/yatracker-linker:${{ env.VERSION }}
+          tags: ghcr.io/alvassin/yatracker-linker:${{ env.poetry_version }}
