@@ -51,4 +51,4 @@ jobs:
           context: ${{ matrix.image.context }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
-          tags: ghcr.io/alvassin/yatracker-linker:${{ VERSION }}
+          tags: ghcr.io/alvassin/yatracker-linker:${{ env.VERSION }}
