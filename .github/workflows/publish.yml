@@ -35,6 +35,12 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
 
+      - name: Get poetry version
+        run: echo "poetry_version=$(poetry version --short)" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -42,18 +48,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get poetry version
-        run: echo "poetry_version=$(poetry version --short)" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Ls
-        run: ls -allah dist/
-
-      - uses: docker/build-push-action@v4
+      - name: Build & push docker image
+        uses: docker/build-push-action@v4
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
+          push: true
           tags: ghcr.io/alvassin/yatracker-linker:${{ env.poetry_version }}
