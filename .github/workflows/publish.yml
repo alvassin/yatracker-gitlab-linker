@@ -45,11 +45,14 @@ jobs:
       - name: ...
         id: version
         run: |
-         echo "::set-output name=poetry_version::$(poetry version --short)"
+          export VERSION="$(poetry version --short)"
+          echo "::set-output name=version::${VERSION}"
+        outputs:
+          poetry_version: ${{ steps.version.outputs.version }}
 
       - uses: docker/build-push-action@v4
         with:
           context: ${{ matrix.image.context }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
-          tags: ghcr.io/alvassin/yatracker-linker:${{ steps.version.outputs.poetry_version }}
+          tags: ghcr.io/alvassin/yatracker-linker:${{ steps.version.outputs.version }}
