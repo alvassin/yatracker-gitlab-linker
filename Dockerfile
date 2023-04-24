@@ -14,6 +14,9 @@ RUN find-libdeps /usr/share/python3/app > /usr/share/python3/app/pkgdeps.txt
 FROM snakepacker/python:3.11 as app
 
 COPY --from=builder /usr/share/python3/app /usr/share/python3/app
+
+RUN xargs -ra /usr/share/python3/app/pkgdeps.txt apt-install
+
 RUN ln -snf /usr/share/python3/app/bin/yatracker-linker /usr/bin/
 
 CMD ["yatracker-linker"]
