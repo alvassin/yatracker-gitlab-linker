@@ -35,11 +35,12 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
 
+      - name: Store built version
+        run: echo "VERSION=$(poetry version --short)"
+
+
       - name: Build docker image
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v4
         with:
-          registry: ghcr.io
-          username: "alvassin"
-          password: ${{ secrets.GITHUB_TOKEN }}
           repository: alvassin/yatracker-linker
-          tags: latest
+          tags: ${{ env.VERSION }}
