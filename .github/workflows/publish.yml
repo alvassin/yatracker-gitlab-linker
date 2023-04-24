@@ -42,17 +42,13 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ...
-        id: version
+      - name: Get poetry version
         run: |
           export VERSION="$(poetry version --short)"
-          echo "::set-output name=version::${VERSION}"
-        outputs:
-          poetry_version: ${{ steps.version.outputs.version }}
 
       - uses: docker/build-push-action@v4
         with:
           context: ${{ matrix.image.context }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
-          tags: ghcr.io/alvassin/yatracker-linker:${{ steps.version.outputs.version }}
+          tags: ghcr.io/alvassin/yatracker-linker:${{ VERSION }}
