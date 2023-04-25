@@ -14,7 +14,7 @@ class HttpService(AIOHTTPService):
 
     async def create_application(self):
         app = web.Application()
-        app.router.add_route('GET', GitlabView.URL_PATH, GitlabView)
+        app.router.add_route('POST', GitlabView.URL_PATH, GitlabView)
 
         app['st_client'] = self.st_client
 
