@@ -21,12 +21,12 @@ class StClient:
         return self._base_url / url_path.lstrip('/')
 
     async def issue_exists(self, key: str):
-        url = self.get_url(f'issues/{key}')
+        url = self.get_url(f'v2/issues/{key}')
         async with self._session.head(url, headers=self._headers) as resp:
             return resp.status == HTTPStatus.OK
 
     async def link_issue(self, key: str, mr_path: str):
-        url = self.get_url(f'issues/{key}/remotelinks')
+        url = self.get_url(f'v2/issues/{key}/remotelinks')
         json = {
             'origin': self._link_origin,
             'relationship': 'relates',
