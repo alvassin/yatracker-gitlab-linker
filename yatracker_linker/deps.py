@@ -7,7 +7,7 @@ from yatracker_linker.st_client import StClient
 
 async def st_client(parser: Parser):
     async with ClientSession() as session:
-        return StClient(
+        yield StClient(
             session=session,
             url=parser.tracker.url,
             token=parser.tracker.token,
