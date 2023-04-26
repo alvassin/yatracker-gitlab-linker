@@ -43,10 +43,12 @@ class GitlabView(View):
             event_data['object_attributes']['description']
         )
 
+        log.debug('Get tickets for candidates %r', candidates)
         existing = await asyncio.gather(*[
             self.st_client.issue_exists(candidate)
             for candidate in candidates
         ])
+        log.debug('Got existing tickets %r', existing)
 
         return [
             candidate
