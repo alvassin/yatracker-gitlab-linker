@@ -13,23 +13,23 @@ from yatracker_linker.views.events import GITLAB_TOKEN_HEADER
 
 # Contains only required fields by yatracker-linker
 MR_EVENT_SAMPLE = {
-  'event_type': 'merge_request',
-  'project': {'path_with_namespace': 'alvassin/example'},
-  'object_attributes': {
-    'description': '',
-    'source_branch': 'EXAMPLETASK-123',
-    'target_branch': 'master',
-    'title': 'Update README.md',
-    'url': 'http://gitlab.local/alvassin/example/-/merge_requests/1',
-    'last_commit': {
-      'message': 'Update README.md',
-      'title': 'Update README.md',
-      'url': (
-          'http://gitlab.local/alvassin/example/-/'
-          'commit/6800a5742f4793c4335a357ae11bdef01c9d5668'
-      ),
+    'event_type': 'merge_request',
+    'project': {'path_with_namespace': 'alvassin/example'},
+    'object_attributes': {
+        'description': '',
+        'source_branch': 'EXAMPLETASK-123',
+        'target_branch': 'master',
+        'title': 'Update README.md',
+        'url': 'http://gitlab.local/alvassin/example/-/merge_requests/1',
+        'last_commit': {
+            'message': 'Update README.md',
+            'title': 'Update README.md',
+            'url': (
+                'http://gitlab.local/alvassin/example/-/'
+                'commit/6800a5742f4793c4335a357ae11bdef01c9d5668'
+            ),
+        }
     }
-  }
 }
 
 
