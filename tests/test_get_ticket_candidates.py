@@ -1,4 +1,4 @@
-from yatracker_linker.views.event import get_ticket_candidates
+from yatracker_linker.views.events import get_ticket_candidates
 
 
 def test_get_no_candidates():

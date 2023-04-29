@@ -25,5 +25,10 @@ class Parser(argclass.Parser):
     address: str = argclass.Argument(default='0.0.0.0')
     port: int
 
+    gitlab_token: frozenset[str] = argclass.Argument(
+        type=str, nargs='*', converter=frozenset,
+        help='Tokens used by gitlab to authenticate with X-Gitlab-Token header'
+    )
+
     sentry = SentryGroup(title='Sentry options')
     tracker = TrackerGroup(title='Tracker options')

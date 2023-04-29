@@ -4,9 +4,9 @@ import re
 from http import HTTPStatus
 from typing import Any, List, Mapping
 
-from aiohttp.web import HTTPBadRequest, Response, View
+from aiohttp.web import HTTPBadRequest, HTTPUnauthorized, Response
 
-from yatracker_linker.st_client import StClient
+from yatracker_linker.views.base import BaseView
 
 
 PATTERN = re.compile(r'(?P<ticket>[a-z0-9]+-[0-9]+)', flags=re.IGNORECASE)
@@ -28,12 +28,8 @@ def get_mr_url_path(url, project_path_with_namespace):
     return url[index:]
 
 
-class GitlabView(View):
+class GitlabView(BaseView):
     URL_PATH = '/gitlab'
-
-    @property
-    def st_client(self) -> StClient:
-        return self.request.app['st_client']
 
     async def get_tickets(self, event_data: Mapping[str, Any]) -> List[str]:
         candidates = get_ticket_candidates(
@@ -58,9 +54,16 @@ class GitlabView(View):
             if exists
         ]
 
-    async def post(self):
-        event = await self.request.json()
+    def assert_authorized(self):
+        if self.gitlab_tokens:
+            token = self.request.headers.get('X-Gitlab-Token')
+            if token not in self.gitlab_tokens:
+                raise HTTPUnauthorized
 
+    async def post(self):
+        self.assert_authorized()
+
+        event = await self.request.json()
         log.debug('Received event %r', event)
 
         if event['event_type'] != 'merge_request':

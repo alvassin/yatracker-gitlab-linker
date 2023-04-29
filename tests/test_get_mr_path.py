@@ -1,4 +1,4 @@
-from yatracker_linker.views.event import get_mr_url_path
+from yatracker_linker.views.events import get_mr_url_path
 
 
 def test_get_mr_path():

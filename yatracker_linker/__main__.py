@@ -24,7 +24,11 @@ def main():
     config_deps(parser)
 
     services: List[Service] = [
-        HttpService(address=parser.address, port=parser.port)
+        HttpService(
+            address=parser.address,
+            port=parser.port,
+            gitlab_tokens=parser.gitlab_token
+        )
     ]
 
     if parser.sentry.dsn:
