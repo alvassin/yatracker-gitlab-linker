@@ -1,4 +1,7 @@
+from contextlib import ExitStack
 from http import HTTPStatus
+from typing import Iterable, Optional
+from unittest.mock import patch
 
 import pytest
 from aiohttp import ClientSession
@@ -9,12 +12,26 @@ from yatracker_linker.st_client import StClient
 from yatracker_linker.views.events import GITLAB_TOKEN_HEADER
 
 
-class StClientMock(StClient):
-    async def issue_exists(self, key: str):
-        return True
-
-    async def link_issue(self, key: str, mr_path: str):
-        return True
+# Contains only required fields by yatracker-linker
+MR_EVENT_SAMPLE = {
+  "event_type": "merge_request",
+  "project": {"path_with_namespace": "alvassin/example"},
+  "object_attributes": {
+    "description": "",
+    "source_branch": "EXAMPLETASK-123",
+    "target_branch": "master",
+    "title": "Update README.md",
+    "url": "http://gitlab.local/alvassin/example/-/merge_requests/1",
+    "last_commit": {
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "url": (
+          "http://gitlab.local/alvassin/example/-/"
+          "commit/6800a5742f4793c4335a357ae11bdef01c9d5668"
+      ),
+    }
+  }
+}
 
 
 @pytest.fixture
@@ -23,61 +40,96 @@ async def http_session():
         yield session
 
 
-async def test_auth_without_gitlab_token(
-    localhost,
-    aiomisc_unused_port_factory,
-    http_session
-):
-    port = aiomisc_unused_port_factory()
-    service = HttpService(
-        address=localhost,
-        port=port,
-        st_client=StClientMock(
-            url=URL('https://example.com'),
-            session=http_session,
-            token='secret',
-            link_origin='example'
-        ),
-        gitlab_tokens=frozenset()
+@pytest.fixture
+def mocked_st_client(http_session):
+    client = StClient(
+        url=URL('http://example.com'),
+        session=http_session,
+        token='secret',
+        link_origin='example.origin'
     )
-    await service.start()
 
-    url = URL.build(
-        scheme='http', host=localhost, port=port, path='/gitlab'
-    )
-    async with http_session.post(url, json={}) as resp:
-        assert resp.status == HTTPStatus.BAD_REQUEST
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(client, 'issue_exists', return_value=True)
+        )
+        stack.enter_context(
+            patch.object(client, 'link_issue', return_value=True)
+        )
+        yield client
 
 
-@pytest.mark.parametrize('headers,expected_status', [
-    ({}, HTTPStatus.UNAUTHORIZED),
-    ({GITLAB_TOKEN_HEADER: 'token1'}, HTTPStatus.BAD_REQUEST),
-    ({GITLAB_TOKEN_HEADER: 'token2'}, HTTPStatus.BAD_REQUEST)
-])
-async def test_auth_with_gitlab_token(
+@pytest.fixture
+def http_service_factory(
     localhost,
-    aiomisc_unused_port_factory,
+    aiomisc_unused_port,
     http_session,
+    mocked_st_client
+):
+    def factory(tokens: Optional[Iterable[str]] = None):
+        return HttpService(
+            address=localhost,
+            port=aiomisc_unused_port,
+            st_client=mocked_st_client,
+            gitlab_tokens=frozenset(tokens or [])
+        )
+    return factory
+
+
+@pytest.fixture
+def http_service_url(localhost, aiomisc_unused_port):
+    return URL.build(
+        scheme='http',
+        host=localhost,
+        port=aiomisc_unused_port,
+        path='/gitlab'
+    )
+
+
+@pytest.mark.parametrize('gitlab_tokens,headers,expected_status', [
+    # Service started without specified gitlab tokens, access is allowed
+    # without any headers
+    (frozenset(), {}, HTTPStatus.OK),
+
+    # Service started with specified gitlab tokens, no header provided,
+    # access denied
+    (frozenset(['token1', 'token2']), {}, HTTPStatus.UNAUTHORIZED),
+
+    # Service started with specified gitlab tokens, bad header provided,
+    # access denied
+    (
+        frozenset(['token1', 'token2']),
+        {GITLAB_TOKEN_HEADER: 'inavlid'},
+        HTTPStatus.UNAUTHORIZED
+    ),
+
+    # Service started with specified gitlab tokens, correct header provided,
+    # access allowed
+    (
+        frozenset(['token1', 'token2']),
+        {GITLAB_TOKEN_HEADER: 'token1'},
+        HTTPStatus.OK
+    ),
+    (
+        frozenset(['token1', 'token2']),
+        {GITLAB_TOKEN_HEADER: 'token2'},
+        HTTPStatus.OK
+    )
+])
+async def test_service_with_gitlab_tokens_auth(
+    http_session,
+    http_service_factory,
+    http_service_url,
+    gitlab_tokens,
     headers,
     expected_status
 ):
-    port = aiomisc_unused_port_factory()
-    service = HttpService(
-        address=localhost,
-        port=port,
-        st_client=StClientMock(
-            url=URL('https://example.com'),
-            session=http_session,
-            token='secret',
-            link_origin='example'
-        ),
-        gitlab_tokens=frozenset(['token1', 'token2'])
-    )
+    service = http_service_factory(tokens=gitlab_tokens)
     await service.start()
 
-    url = URL.build(
-        scheme='http', host=localhost, port=port, path='/gitlab'
-    )
-    async with http_session.post(url, headers=headers, json={}) as resp:
+    async with http_session.post(
+        http_service_url,
+        headers=headers,
+        json=MR_EVENT_SAMPLE
+    ) as resp:
         assert resp.status == expected_status
-
