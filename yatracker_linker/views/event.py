@@ -59,6 +59,8 @@ class GitlabView(View):
     async def post(self):
         event = await self.request.json()
 
+        log.debug('Received event %r', event)
+
         if event['event_type'] != 'merge_request':
             return Response(status=HTTPStatus.NO_CONTENT)
 
