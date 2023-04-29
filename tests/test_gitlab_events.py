@@ -133,3 +133,15 @@ async def test_service_with_gitlab_tokens_auth(
         json=MR_EVENT_SAMPLE
     ) as resp:
         assert resp.status == expected_status
+
+
+async def test_invalid_event_data(
+    http_session,
+    http_service_factory,
+    http_service_url,
+):
+    service = http_service_factory()
+    await service.start()
+
+    async with http_session.post(http_service_url, json={}) as resp:
+        assert resp.status == HTTPStatus.BAD_REQUEST
