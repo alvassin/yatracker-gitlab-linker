@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from aiohttp import ClientSession
 from yarl import URL
 
@@ -19,11 +17,6 @@ class StClient:
 
     def get_url(self, url_path: str) -> URL:
         return self._base_url / url_path.lstrip('/')
-
-    async def issue_exists(self, key: str):
-        url = self.get_url(f'v2/issues/{key}')
-        async with self._session.head(url, headers=self._headers) as resp:
-            return resp.status == HTTPStatus.OK
 
     async def link_issue(self, key: str, mr_path: str):
         url = self.get_url(f'v2/issues/{key}/remotelinks')

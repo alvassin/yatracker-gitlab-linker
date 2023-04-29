@@ -1,7 +1,6 @@
-from contextlib import ExitStack
 from http import HTTPStatus
 from typing import Iterable, Optional
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import ClientSession
@@ -14,20 +13,20 @@ from yatracker_linker.views.events import GITLAB_TOKEN_HEADER
 
 # Contains only required fields by yatracker-linker
 MR_EVENT_SAMPLE = {
-  "event_type": "merge_request",
-  "project": {"path_with_namespace": "alvassin/example"},
-  "object_attributes": {
-    "description": "",
-    "source_branch": "EXAMPLETASK-123",
-    "target_branch": "master",
-    "title": "Update README.md",
-    "url": "http://gitlab.local/alvassin/example/-/merge_requests/1",
-    "last_commit": {
-      "message": "Update README.md",
-      "title": "Update README.md",
-      "url": (
-          "http://gitlab.local/alvassin/example/-/"
-          "commit/6800a5742f4793c4335a357ae11bdef01c9d5668"
+  'event_type': 'merge_request',
+  'project': {'path_with_namespace': 'alvassin/example'},
+  'object_attributes': {
+    'description': '',
+    'source_branch': 'EXAMPLETASK-123',
+    'target_branch': 'master',
+    'title': 'Update README.md',
+    'url': 'http://gitlab.local/alvassin/example/-/merge_requests/1',
+    'last_commit': {
+      'message': 'Update README.md',
+      'title': 'Update README.md',
+      'url': (
+          'http://gitlab.local/alvassin/example/-/'
+          'commit/6800a5742f4793c4335a357ae11bdef01c9d5668'
       ),
     }
   }
@@ -49,13 +48,7 @@ def mocked_st_client(http_session):
         link_origin='example.origin'
     )
 
-    with ExitStack() as stack:
-        stack.enter_context(
-            patch.object(client, 'issue_exists', return_value=True)
-        )
-        stack.enter_context(
-            patch.object(client, 'link_issue', return_value=True)
-        )
+    with patch.object(client, 'link_issue', return_value=True):
         yield client
 
 
@@ -64,13 +57,16 @@ def http_service_factory(
     localhost,
     aiomisc_unused_port,
     http_session,
-    mocked_st_client
+    mocked_st_client,
 ):
-    def factory(tokens: Optional[Iterable[str]] = None):
+    def factory(
+        st_client: StClient = mocked_st_client,
+        tokens: Optional[Iterable[str]] = None,
+    ):
         return HttpService(
             address=localhost,
             port=aiomisc_unused_port,
-            st_client=mocked_st_client,
+            st_client=st_client,
             gitlab_tokens=frozenset(tokens or [])
         )
     return factory
@@ -145,3 +141,24 @@ async def test_invalid_event_data(
 
     async with http_session.post(http_service_url, json={}) as resp:
         assert resp.status == HTTPStatus.BAD_REQUEST
+
+
+async def test_mr_linked_successfuly(
+    http_session,
+    http_service_factory,
+    http_service_url,
+    mocked_st_client
+):
+    service = http_service_factory()
+    await service.start()
+
+    async with http_session.post(
+        http_service_url, json=MR_EVENT_SAMPLE
+    ) as resp:
+        assert resp.status == HTTPStatus.OK
+
+    mocked_method: AsyncMock = mocked_st_client.link_issue
+    mocked_method.assert_called_once_with(
+        'EXAMPLETASK-123',
+        'alvassin/example/-/merge_requests/1'
+    )

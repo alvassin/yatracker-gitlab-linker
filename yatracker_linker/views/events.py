@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 from http import HTTPStatus
-from typing import Any, List, Mapping, Literal
+from typing import List, Literal
 
 from aiohttp.web import HTTPBadRequest, HTTPUnauthorized, Response
 from pydantic import BaseModel
@@ -23,11 +23,6 @@ def get_ticket_candidates(*items: str) -> List[str]:
             candidates.update(matches)
 
     return list(sorted(candidate.upper() for candidate in candidates))
-
-
-def get_mr_url_path(url, project_path_with_namespace):
-    index = url.find(project_path_with_namespace)
-    return url[index:]
 
 
 class LastCommitModel(BaseModel):
@@ -53,32 +48,15 @@ class MergeRequestEventModel(BaseModel):
     object_attributes: ObjectAttributesModel
     project: ProjectModel
 
+    def get_merge_request_path(self) -> str:
+        index = self.object_attributes.url.find(
+            self.project.path_with_namespace
+        )
+        return self.object_attributes.url[index:]
+
 
 class GitlabView(BaseView):
     URL_PATH = '/gitlab'
-
-    async def get_tickets(self, event: MergeRequestEventModel) -> List[str]:
-        candidates = get_ticket_candidates(
-            event.object_attributes.last_commit.title,
-            event.object_attributes.last_commit.message,
-            event.object_attributes.source_branch,
-            event.object_attributes.target_branch,
-            event.object_attributes.title,
-            event.object_attributes.description
-        )
-
-        log.debug('Get tickets for candidates %r', candidates)
-        existing = await asyncio.gather(*[
-            self.st_client.issue_exists(candidate)
-            for candidate in candidates
-        ])
-        log.debug('Got existing tickets %r', existing)
-
-        return [
-            candidate
-            for candidate, exists in zip(candidates, existing)
-            if exists
-        ]
 
     def assert_authorized(self):
         if self.gitlab_tokens:
@@ -86,37 +64,56 @@ class GitlabView(BaseView):
             if token not in self.gitlab_tokens:
                 raise HTTPUnauthorized
 
-    async def post(self):
+    async def link_issues(
+        self,
+        event: MergeRequestEventModel,
+        merge_request_path: str
+    ) -> List[str]:
+        issues = get_ticket_candidates(
+            event.object_attributes.last_commit.title,
+            event.object_attributes.last_commit.message,
+            event.object_attributes.source_branch,
+            event.object_attributes.target_branch,
+            event.object_attributes.title,
+            event.object_attributes.description
+        )
+        log.debug(
+            'Got candidates to link with MR %s: %r',
+            event.object_attributes.url, issues
+        )
+
+        if not issues:
+            return []
+
+        link_results = await asyncio.gather(*[
+            self.st_client.link_issue(issue, merge_request_path)
+            for issue in issues
+        ])
+
+        return [
+            issue
+            for issue, linked in zip(issues, link_results)
+            if linked
+        ]
+
+    async def get_event(self) -> MergeRequestEventModel:
         try:
-            self.assert_authorized()
+            data = await self.request.json()
+            log.debug('Received event %r', data)
+            return MergeRequestEventModel.parse_obj(data)
+        except Exception:
+            raise HTTPBadRequest
 
-            event_data = await self.request.json()
-            log.debug('Received event %r', event_data)
+    async def post(self):
+        self.assert_authorized()
 
-            try:
-                event = MergeRequestEventModel.parse_obj(event_data)
-            except Exception:
-                raise HTTPBadRequest
+        event = await self.get_event()
 
-            mr_path = get_mr_url_path(
-                event.object_attributes.url,
-                event.project.path_with_namespace
-            )
-            if not mr_path:
-                raise HTTPBadRequest(text='Unable to get merge request path')
+        mr_path = event.get_merge_request_path()
+        if not mr_path:
+            raise HTTPBadRequest(text='Unable to get merge request path')
 
-            tickets = await self.get_tickets(event)
-            if not tickets:
-                log.info('No tickets to link with mr %s', mr_path)
-                return Response(status=HTTPStatus.NO_CONTENT)
+        linked_issues = await self.link_issues(event, mr_path)
+        log.info('Linked mr %s with tickets: %r', mr_path, linked_issues)
 
-            log.info('Linking mr %s with tickets %r', mr_path, tickets)
-            await asyncio.gather(*[
-                self.st_client.link_issue(ticket, mr_path)
-                for ticket in tickets
-            ])
-
-            return Response()
-        except Exception as e:
-            print(e)
-            raise
+        return Response(status=HTTPStatus.OK)
