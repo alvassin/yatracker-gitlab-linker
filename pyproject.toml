@@ -17,6 +17,7 @@ aiomisc = {version = "^17.0.9", extras = ["raven"]}
 argclass = "^0.9.2"
 aiomisc-dependency = "^0.1.17"
 yarl = "^1.8.2"
+pydantic = "^1.10.7"
 
 [tool.poetry.group.dev.dependencies]
 aiomisc-pytest = "^1.1.1"
