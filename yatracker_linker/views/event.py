@@ -37,6 +37,8 @@ class GitlabView(View):
 
     async def get_tickets(self, event_data: Mapping[str, Any]) -> List[str]:
         candidates = get_ticket_candidates(
+            event_data['object_attributes']['last_commit']['title'],
+            event_data['object_attributes']['last_commit']['message'],
             event_data['object_attributes']['source_branch'],
             event_data['object_attributes']['target_branch'],
             event_data['object_attributes']['title'],
