@@ -49,10 +49,17 @@ async def test_auth_without_gitlab_token(
         assert resp.status == HTTPStatus.BAD_REQUEST
 
 
+@pytest.mark.parametrize('headers,expected_status', [
+    ({}, HTTPStatus.UNAUTHORIZED),
+    ({GITLAB_TOKEN_HEADER: 'token1'}, HTTPStatus.BAD_REQUEST),
+    ({GITLAB_TOKEN_HEADER: 'token2'}, HTTPStatus.BAD_REQUEST)
+])
 async def test_auth_with_gitlab_token(
     localhost,
     aiomisc_unused_port_factory,
-    http_session
+    http_session,
+    headers,
+    expected_status
 ):
     port = aiomisc_unused_port_factory()
     service = HttpService(
@@ -71,16 +78,6 @@ async def test_auth_with_gitlab_token(
     url = URL.build(
         scheme='http', host=localhost, port=port, path='/gitlab'
     )
-    async with http_session.post(url, json={}) as resp:
-        assert resp.status == HTTPStatus.UNAUTHORIZED
-
-    async with http_session.post(
-        url, headers={GITLAB_TOKEN_HEADER: 'token1'}, json={}
-    ) as resp:
-        assert resp.status == HTTPStatus.BAD_REQUEST
-
-    async with http_session.post(
-        url, headers={GITLAB_TOKEN_HEADER: 'token2'}, json={}
-    ) as resp:
-        assert resp.status == HTTPStatus.BAD_REQUEST
+    async with http_session.post(url, headers=headers, json={}) as resp:
+        assert resp.status == expected_status
 
