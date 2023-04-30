@@ -60,7 +60,6 @@ jobs:
             -vv \
             --cov=yatracker_linker \
             --cov-report=term-missing \
-            --aiomisc-test-timeout=120 \
             tests
         env:
           FORCE_COLOR: 1
