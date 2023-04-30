@@ -56,11 +56,11 @@ jobs:
       - run: python -m pip install poetry
       - run: poetry install
       - run: >-
-          poetry run pytest
-            -vv
-            --cov=yatracker_linker
-            --cov-report=term-missing
-            --aiomisc-test-timeout=120
+          poetry run pytest \
+            -vv \
+            --cov=yatracker_linker \
+            --cov-report=term-missing \
+            --aiomisc-test-timeout=120 \
             tests
         env:
           FORCE_COLOR: 1
