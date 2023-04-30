@@ -1,10 +1,15 @@
 import asyncio
+import json
 import logging
 import re
+from dataclasses import asdict, dataclass
+from functools import partial
 from typing import List, Literal
 
 from aiohttp.web import HTTPBadRequest, HTTPUnauthorized, json_response
 from pydantic import BaseModel
+from pydantic.error_wrappers import ValidationError
+from pydantic.fields import Field
 
 from yatracker_linker.views.base import BaseView
 
@@ -13,6 +18,22 @@ PATTERN = re.compile(r'(?P<ticket>[a-z0-9]+-[0-9]+)', flags=re.IGNORECASE)
 GITLAB_TOKEN_HEADER = 'X-Gitlab-Token'
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class LinkItem:
+    path: str
+    issue: str
+
+
+def convert(obj):
+    if isinstance(obj, LinkItem):
+        return asdict(obj)
+
+    raise ValueError(f'Fail to convert object {obj}')
+
+
+json_dumps = partial(json.dumps, default=convert)
 
 
 def get_ticket_candidates(*items: str) -> List[str]:
@@ -24,9 +45,10 @@ def get_ticket_candidates(*items: str) -> List[str]:
     return list(sorted(candidate.upper() for candidate in candidates))
 
 
-class LastCommitModel(BaseModel):
+class CommitModel(BaseModel):
     title: str
     message: str
+    url: str
 
 
 class ObjectAttributesModel(BaseModel):
@@ -35,7 +57,7 @@ class ObjectAttributesModel(BaseModel):
     target_branch: str
     title: str
     description: str
-    last_commit: LastCommitModel
+    last_commit: CommitModel
 
 
 class ProjectModel(BaseModel):
@@ -43,15 +65,70 @@ class ProjectModel(BaseModel):
 
 
 class MergeRequestEventModel(BaseModel):
-    event_type: Literal['merge_request']
+    object_kind: Literal['merge_request']
     object_attributes: ObjectAttributesModel
     project: ProjectModel
 
-    def get_merge_request_path(self) -> str:
-        index = self.object_attributes.url.find(
+    def get_items_to_link(self) -> List[LinkItem]:
+        issues = get_ticket_candidates(
+            self.object_attributes.last_commit.title,
+            self.object_attributes.last_commit.message,
+            self.object_attributes.source_branch,
+            self.object_attributes.target_branch,
+            self.object_attributes.title,
+            self.object_attributes.description
+        )
+
+        merge_request_path = get_relative_url_path(
+            self.object_attributes.url,
             self.project.path_with_namespace
         )
-        return self.object_attributes.url[index:]
+
+        log.debug(
+            'Got candidates to link with MR %s: %r',
+            self.object_attributes.url, issues
+        )
+
+        return [
+            LinkItem(issue=issue, path=merge_request_path)
+            for issue in issues
+        ]
+
+
+class PushEventModel(BaseModel):
+    object_kind: Literal['push']
+    project: ProjectModel
+    commits: List[CommitModel]
+
+    def get_items_to_link(self) -> List[LinkItem]:
+        items_to_link = []
+        for commit in self.commits:
+            if issues := get_ticket_candidates(commit.title, commit.message):
+                commit_path = get_relative_url_path(
+                    commit.url, self.project.path_with_namespace
+                )
+                for issue in issues:
+                    items_to_link.append(
+                        LinkItem(path=commit_path, issue=issue)
+                    )
+
+                log.debug(
+                    'Got candidates to link with commit %s: %r',
+                    commit_path, issues
+                )
+
+        return items_to_link
+
+
+class EventModel(BaseModel):
+    event: PushEventModel | MergeRequestEventModel = Field(
+        ..., discriminator='object_kind'
+    )
+
+
+def get_relative_url_path(url, project_path_with_namespace):
+    index = url.find(project_path_with_namespace)
+    return url[index:]
 
 
 class GitlabView(BaseView):
@@ -63,59 +140,35 @@ class GitlabView(BaseView):
             if token not in self.gitlab_tokens:
                 raise HTTPUnauthorized
 
-    async def link_issues(
-        self,
-        event: MergeRequestEventModel,
-        merge_request_path: str
-    ) -> List[str]:
-        issues = get_ticket_candidates(
-            event.object_attributes.last_commit.title,
-            event.object_attributes.last_commit.message,
-            event.object_attributes.source_branch,
-            event.object_attributes.target_branch,
-            event.object_attributes.title,
-            event.object_attributes.description
-        )
-        log.debug(
-            'Got candidates to link with MR %s: %r',
-            event.object_attributes.url, issues
-        )
-
-        if not issues:
-            return []
-
-        link_results = await asyncio.gather(*[
-            self.st_client.link_issue(issue, merge_request_path)
-            for issue in issues
-        ])
-
-        return [
-            issue
-            for issue, linked in zip(issues, link_results)
-            if linked
-        ]
-
-    async def get_event(self) -> MergeRequestEventModel:
+    async def get_event(self) -> PushEventModel | MergeRequestEventModel:
         try:
             data = await self.request.json()
             log.debug('Received event %r', data)
-            return MergeRequestEventModel.parse_obj(data)
-        except Exception:
-            raise HTTPBadRequest
+            return EventModel(event=data).event
+        except ValidationError:
+            raise HTTPBadRequest(text='Unknown object kind')
 
     async def post(self):
-        self.assert_authorized()
+        try:
+            self.assert_authorized()
 
-        event = await self.get_event()
+            event = await self.get_event()
+            items_to_link = event.get_items_to_link()
 
-        mr_path = event.get_merge_request_path()
-        if not mr_path:
-            raise HTTPBadRequest(text='Unable to get merge request path')
+            linked_items = []
+            if items_to_link:
+                link_results = await asyncio.gather(*[
+                    self.st_client.link_issue(item.issue, item.path)
+                    for item in items_to_link
+                ])
+                linked_items = [
+                    item
+                    for item, linked in zip(items_to_link, link_results)
+                    if linked
+                ]
 
-        linked_issues = await self.link_issues(event, mr_path)
-        log.info('Linked mr %s with tickets: %r', mr_path, linked_issues)
-
-        return json_response({
-            'linked_issues': linked_issues,
-            'merge_request_path': mr_path
-        })
+            log.info('Linked items: %r', linked_items)
+            return json_response(linked_items, dumps=json_dumps)
+        except Exception as e:
+            print(e)
+            raise

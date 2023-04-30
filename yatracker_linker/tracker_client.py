@@ -18,12 +18,12 @@ class TrackerClient:
     def get_url(self, url_path: str) -> URL:
         return self._base_url / url_path.lstrip('/')
 
-    async def link_issue(self, key: str, mr_path: str):
+    async def link_issue(self, key: str, remote_path: str):
         url = self.get_url(f'v2/issues/{key}/remotelinks')
         json = {
             'origin': self._link_origin,
             'relationship': 'relates',
-            'key': mr_path
+            'key': remote_path
         }
         async with self._session.post(
             url, headers=self._headers, json=json

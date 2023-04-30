@@ -18,10 +18,13 @@ from yatracker_linker.views.events import GITLAB_TOKEN_HEADER
 TRACKER_SECRET = 'tracker-secret'
 TRACKER_LINK_ORIGIN = 'example.origin'
 MR_PATH = 'alvassin/example/-/merge_requests/1'
+COMMIT_PATH = (
+    'alvassin/example/-/commit/c5feabde2d8cd023215af4d2ceeb7a64839fc428'
+)
 
 # Contains only required fields by yatracker-linker
 MR_EVENT_SAMPLE = {
-    'event_type': 'merge_request',
+    'object_kind': 'merge_request',
     'project': {'path_with_namespace': 'alvassin/example'},
     'object_attributes': {
         'description': '',
@@ -32,12 +35,19 @@ MR_EVENT_SAMPLE = {
         'last_commit': {
             'message': 'Update README.md',
             'title': 'Update README.md',
-            'url': (
-                'http://gitlab.local/alvassin/example/-/'
-                'commit/6800a5742f4793c4335a357ae11bdef01c9d5668'
-            ),
+            'url': f'http://gitlab.local/{COMMIT_PATH}',
         }
     }
+}
+
+PUSH_EVENT_SAMPLE = {
+    'object_kind': 'push',
+    'project': {'path_with_namespace': 'alvassin/example'},
+    'commits': [{
+        'message': 'RESP-200',
+        'title': 'Example commit',
+        'url': f'http://gitlan.local/{COMMIT_PATH}',
+    }]
 }
 
 
@@ -179,9 +189,9 @@ async def test_invalid_event_data(
             assert resp.status == HTTPStatus.BAD_REQUEST
 
 
-@pytest.mark.parametrize('issue,expected_linked_issues', [
+@pytest.mark.parametrize('issue,expected_response', [
     # For successful response we expect one linked issue
-    ('RESP-200', ['RESP-200']),
+    ('RESP-200', [{'issue': 'RESP-200', 'path': MR_PATH}]),
 
     # For failed responses we expect no linked issues
     ('RESP-401', []),
@@ -193,7 +203,7 @@ async def test_link_merge_request_with_tracker(
     http_service_url,
     st_server,
     issue,
-    expected_linked_issues
+    expected_response
 ):
     async with http_service_factory():
         event = deepcopy(MR_EVENT_SAMPLE)
@@ -203,10 +213,7 @@ async def test_link_merge_request_with_tracker(
             assert resp.status == HTTPStatus.OK
             resp_content = await resp.json()
 
-    assert resp_content == {
-        'linked_issues': expected_linked_issues,
-        'merge_request_path': MR_PATH
-    }
+    assert resp_content == expected_response
 
     # Check correct number of tracker requests was performed
     assert len(st_server.app['requests']) == 1
@@ -225,4 +232,39 @@ async def test_link_merge_request_with_tracker(
         'origin': TRACKER_LINK_ORIGIN,
         'relationship': 'relates',
         'key': MR_PATH
+    }
+
+
+async def test_link_commits_with_tracker(
+    http_session,
+    http_service_factory,
+    http_service_url,
+    st_server
+):
+    async with http_service_factory():
+        async with http_session.post(
+            http_service_url, json=PUSH_EVENT_SAMPLE
+        ) as resp:
+            assert resp.status == HTTPStatus.OK
+            resp_content = await resp.json()
+
+    assert resp_content == [{'issue': 'RESP-200', 'path': COMMIT_PATH}]
+
+    # Check correct number of tracker requests was performed
+    assert len(st_server.app['requests']) == 1
+    request = st_server.app['requests'][0]
+
+    # Check correct URL was called
+    assert request['url'].path == f'/v2/issues/RESP-200/remotelinks'
+
+    # Check tracker received auth headers
+    assert request['headers'].get(hdrs.AUTHORIZATION) == (
+        f'OAuth {TRACKER_SECRET}'
+    )
+
+    # Check data received by Tracker
+    assert request['json'] == {
+        'origin': TRACKER_LINK_ORIGIN,
+        'relationship': 'relates',
+        'key': COMMIT_PATH
     }
