@@ -1,6 +1,6 @@
 from aiohttp.web import Application, View
 
-from yatracker_linker.st_client import StClient
+from yatracker_linker.tracker_client import TrackerClient
 
 
 class BaseView(View):
@@ -15,5 +15,5 @@ class BaseView(View):
         return self.request.app['gitlab_tokens']
 
     @property
-    def st_client(self) -> StClient:
+    def st_client(self) -> TrackerClient:
         return self.request.app['st_client']

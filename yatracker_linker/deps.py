@@ -2,12 +2,12 @@ from aiohttp import ClientSession
 from aiomisc_dependency import dependency, reset_store
 
 from yatracker_linker.args import Parser
-from yatracker_linker.st_client import StClient
+from yatracker_linker.tracker_client import TrackerClient
 
 
 async def st_client(parser: Parser):
     async with ClientSession() as session:
-        yield StClient(
+        yield TrackerClient(
             session=session,
             url=parser.tracker.url,
             token=parser.tracker.token,

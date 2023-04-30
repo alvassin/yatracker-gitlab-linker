@@ -2,7 +2,7 @@ from aiohttp import ClientSession
 from yarl import URL
 
 
-class StClient:
+class TrackerClient:
     def __init__(
         self,
         session: ClientSession,

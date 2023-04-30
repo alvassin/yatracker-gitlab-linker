@@ -11,11 +11,11 @@ from aiohttp.web import Application, Request, Response, middleware
 from yarl import URL
 
 from yatracker_linker.service import HttpService
-from yatracker_linker.st_client import StClient
+from yatracker_linker.tracker_client import TrackerClient
 from yatracker_linker.views.events import GITLAB_TOKEN_HEADER
 
 
-TRACKER_SECRET = 'st-secret'
+TRACKER_SECRET = 'tracker-secret'
 TRACKER_LINK_ORIGIN = 'example.origin'
 MR_PATH = 'alvassin/example/-/merge_requests/1'
 
@@ -83,7 +83,7 @@ async def http_session():
 
 @pytest.fixture
 def st_client(http_session, st_server_url):
-    return StClient(
+    return TrackerClient(
         url=st_server_url,
         session=http_session,
         token=TRACKER_SECRET,

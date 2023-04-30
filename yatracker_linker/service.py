@@ -1,7 +1,7 @@
 from aiohttp import web
 from aiomisc.service.aiohttp import AIOHTTPService
 
-from yatracker_linker.st_client import StClient
+from yatracker_linker.tracker_client import TrackerClient
 from yatracker_linker.views.events import GitlabView
 
 
@@ -10,7 +10,7 @@ class HttpService(AIOHTTPService):
     __required__ = ('gitlab_tokens', )
 
     gitlab_tokens: frozenset[str]
-    st_client: StClient
+    st_client: TrackerClient
 
     async def create_application(self):
         app = web.Application()
