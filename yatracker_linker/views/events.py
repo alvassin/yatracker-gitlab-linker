@@ -1,10 +1,9 @@
 import asyncio
 import logging
 import re
-from http import HTTPStatus
 from typing import List, Literal
 
-from aiohttp.web import HTTPBadRequest, HTTPUnauthorized, Response
+from aiohttp.web import HTTPBadRequest, HTTPUnauthorized, json_response
 from pydantic import BaseModel
 
 from yatracker_linker.views.base import BaseView
@@ -116,4 +115,7 @@ class GitlabView(BaseView):
         linked_issues = await self.link_issues(event, mr_path)
         log.info('Linked mr %s with tickets: %r', mr_path, linked_issues)
 
-        return Response(status=HTTPStatus.OK)
+        return json_response({
+            'linked_issues': linked_issues,
+            'merge_request_path': mr_path
+        })
