@@ -255,7 +255,7 @@ async def test_link_commits_with_tracker(
     request = st_server.app['requests'][0]
 
     # Check correct URL was called
-    assert request['url'].path == f'/v2/issues/RESP-200/remotelinks'
+    assert request['url'].path == '/v2/issues/RESP-200/remotelinks'
 
     # Check tracker received auth headers
     assert request['headers'].get(hdrs.AUTHORIZATION) == (
