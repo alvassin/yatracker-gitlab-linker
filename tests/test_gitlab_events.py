@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from http import HTTPStatus
-from typing import Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 from unittest.mock import patch
 
 import pytest
@@ -206,7 +206,7 @@ async def test_link_merge_request_with_tracker(
     expected_response
 ):
     async with http_service_factory():
-        event = deepcopy(MR_EVENT_SAMPLE)
+        event: Dict[str, Any] = deepcopy(MR_EVENT_SAMPLE)
         event['object_attributes']['source_branch'] = issue
         async with http_session.post(http_service_url, json=event) as resp:
             # yatracker-linker response always should be ok

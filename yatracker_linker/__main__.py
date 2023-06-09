@@ -27,7 +27,7 @@ def main():
         HttpService(
             address=parser.address,
             port=parser.port,
-            gitlab_tokens=parser.gitlab_token
+            gitlab_tokens=parser.gitlab.incoming_token
         )
     ]
 
