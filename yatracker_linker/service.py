@@ -11,12 +11,14 @@ class HttpService(AIOHTTPService):
     __dependencies__ = (
         'st_client',
         'gitlab_client',
+        'gitlab_favicon',
     )
     __required__ = ('gitlab_tokens', )
 
     gitlab_tokens: frozenset[str]
     st_client: TrackerClient
     gitlab_client: GitlabClient
+    gitlab_favicon: str
 
     async def create_application(self):
         app = web.Application()
@@ -26,5 +28,6 @@ class HttpService(AIOHTTPService):
         app['gitlab_tokens'] = self.gitlab_tokens
         app['st_client'] = self.st_client
         app['gitlab_client'] = self.gitlab_client
+        app['gitlab_favicon'] = self.gitlab_favicon
 
         return app

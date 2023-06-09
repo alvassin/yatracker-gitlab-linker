@@ -1,9 +1,14 @@
+import logging
+
 from aiohttp import ClientSession
 from aiomisc_dependency import dependency, reset_store
 
 from yatracker_linker.args import Parser
 from yatracker_linker.gitlab_client import GitlabClient
 from yatracker_linker.tracker_client import TrackerClient
+
+
+log = logging.getLogger(__name__)
 
 
 async def st_client(parser: Parser):
@@ -25,6 +30,12 @@ async def gitlab_client(parser: Parser):
         )
 
 
+async def gitlab_favicon(gitlab_client: GitlabClient):
+    icon = await gitlab_client.get_favicon()
+    log.info('Got favicon for gitlab: %r', icon)
+    return icon
+
+
 def config_deps(args):
 
     @dependency
@@ -33,6 +44,7 @@ def config_deps(args):
 
     dependency(st_client)
     dependency(gitlab_client)
+    dependency(gitlab_favicon)
 
 
 def reset_deps():

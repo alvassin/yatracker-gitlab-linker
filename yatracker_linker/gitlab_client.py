@@ -1,6 +1,6 @@
-from typing import Mapping
+from typing import Mapping, Optional
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, hdrs
 from yarl import URL
 
 
@@ -10,16 +10,22 @@ class GitlabClient:
         self._headers = {'Authorization': f'Bearer {token}'}
         self._base_url = url
 
-    def get_url(self, url_path: str) -> str:
-        # Concatenate URL as string to prevent re-encoding
-        return f'{self._base_url}/api/v4/{url_path.lstrip("/")}'
+    async def get_favicon(self) -> Optional[str]:
+        url = f'{self._base_url}/favicon.ico'
+        async with self._session.get(
+            url,
+            headers=self._headers,
+            allow_redirects=False
+        ) as resp:
+            return resp.headers.get(hdrs.LOCATION)
 
     async def get_merge_request(
         self,
         project_id: str,
         merge_request_id: str
     ) -> Mapping:
-        url = self.get_url(
+        url = (
+            f'{self._base_url}/api/v4/'
             f'projects/{project_id}/merge_requests/{merge_request_id}'
         )
         async with self._session.get(url, headers=self._headers) as resp:

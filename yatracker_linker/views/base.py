@@ -22,3 +22,7 @@ class BaseView(View):
     @property
     def gitlab_client(self) -> GitlabClient:
         return self.request.app['gitlab_client']
+
+    @property
+    def gitlab_favicon(self) -> str:
+        return self.request.app['gitlab_favicon']

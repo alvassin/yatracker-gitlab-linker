@@ -33,10 +33,7 @@ class ProxyView(BaseView):
             )
             raise
 
-        # self.request.url.path
-        # self.gitlab_client.get_merge_request()
-        # GET /projects/:id/merge_requests/:merge_request_iid
-        return json_response({
+        data = {
             'key': self.request.url.path,
             'summary': merge_request['title'],
             'assignee': {
@@ -54,4 +51,9 @@ class ProxyView(BaseView):
             'status': {
                 'name': merge_request['state']
             }
-        })
+        }
+
+        if self.gitlab_favicon:
+            data['icon'] = self.gitlab_favicon
+
+        return json_response(data)
